@@ -5,15 +5,6 @@ import math
 import copy
 
 
-R = 30
-C = 30
-
-delimiter = [-1]
-
-deg = list(range(0, 360, 2))
-deg.append(0)
-
-
 def circle(x,y,r,xl=[],yl=[]):
     xl.append([x + r * math.cos(np.deg2rad(d)) for d in deg])
     yl.append([y + r * math.sin(np.deg2rad(d)) for d in deg])
@@ -61,12 +52,12 @@ def find_angle(p,q):
     return(theta)
 
 def parametric_coordinates(p,theta):
-    x = p[0]+(step*math.cos(theta))
-    y = p[1]+(step*math.sin(theta))
+    x=p[0]+(step*math.cos(theta))
+    y=p[1]+(step*math.sin(theta))
 
     return([x,y])
 
-def extend(p,q,step):
+def extend(p,q):
     if(euclidean_distance(p,q)>=thresh_hold):
         theta=find_angle(p,q)
         new_point=parametric_coordinates(p,theta)
@@ -86,35 +77,14 @@ def extend(p,q,step):
 
 
 
-'''
-Function: Check whether the path between points p and q collides
-Input: point p, q
-Return: feasible (True), not feasible (False)
-'''
-def checkpath(p,q,step):
-    if(euclidean_distance(p,q) < thresh_hold):
-        return(True)
-    
-    theta=find_angle(p,q)
-    t=copy.deepcopy(p)
-    while euclidean_distance(t, q) > thresh_hold:
-        t = [t[0] + step * math.cos(theta), t[1] + step * math.sin(theta)]
-        if not is_valid(t):
-            return False
-    return True
 
 
-'''
-Function: pruning optimization
-Input: point path
-Return: new_path after pruning
-'''
-def pruning(path, step):
+def pruning(path):
     new_path = [path[0]]
     i = 0
     j = 1
     while i < len(path) - 2:
-        if checkpath(path[i], path[j], step):
+        if checkpath(path[i], path[j]):
             if euclidean_distance(path[j], path[-1]) < thresh_hold:
                 new_path.append(path[-1])
                 break
@@ -123,10 +93,26 @@ def pruning(path, step):
             new_path.append(path[j-1])
             i = j-1
     
-    
     return(new_path)
 
-def rrt_connect(step,thresh_hold,start,goal):
+'''
+Function: Check whether the path between points p and q collides
+Input: point p, q
+Return: feasible (True), not feasible (False)
+'''
+def checkpath(p,q):
+    if(euclidean_distance(p,q) < thresh_hold):
+        return(True)
+    
+    theta=find_angle(p,q)
+    t=copy.deepcopy(p)
+    while euclidean_distance(t, q) > thresh_hold:
+        t = parametric_coordinates(t,theta)
+        if not is_valid(t):
+            return False
+    return True
+
+def rrt_connect():
     
     tree0 = list()
     tree0.append(start+delimiter)
@@ -142,26 +128,31 @@ def rrt_connect(step,thresh_hold,start,goal):
         
         p_rand = [random.randint(1,R-1),random.randint(1,C-1)]
         p_near0,row0 = nearest(p_rand,tree0)  
-        p_new0 = extend(p_near0,p_rand,step)  
+        p_new0 = extend(p_near0,p_rand)  
 
-        if not is_valid(p_new0):
-            count += 1
-            if len(tree1) < len(tree0):
-                tree0, tree1 = tree1, tree0
+        if(is_valid(p_new0)==False):
+            count+=1
+            if(len(tree1)<len(tree0)):
+                temp=tree0
+                tree0=tree1
+                tree1=temp
             continue
         else:
-            tree0.append([p_new0[0], p_new0[1], row0])
-            p_near1, row1 = nearest(p_new0, tree1)  # p_new0在tree1上最近点
-            p_new1 = extend(p_near1, p_new0, step)  # p_near1朝p_new0生长
+            tree0.append([p_new0[0],p_new0[1],row0])
+            
+            p_near1,row1 = nearest(p_new0,tree1)  
+            p_new1 = extend(p_near1,p_new0) 
 
-            if not is_valid(p_new1):
-                count += 1
-                if len(tree1) < len(tree0):
-                    tree0, tree1 = tree1, tree0
+            if(is_valid(p_new1)==False):
+                count+=1
+                if(len(tree1)<len(tree0)):
+                    temp=tree0
+                    tree0=tree1
+                    tree1=temp
                 continue
             else:
                 tree1.append([p_new1[0], p_new1[1], row1])
-                p_new_new1 = extend(p_new1, p_new0, step)  # p_new1朝p_new0生长
+                p_new_new1 = extend(p_new1, p_new0)  # p_new1朝p_new0生长
 
                 if not is_valid(p_new_new1):
                     count += 1
@@ -173,7 +164,7 @@ def rrt_connect(step,thresh_hold,start,goal):
                     p_new1 = p_new_new1
 
                     while euclidean_distance(p_new1, p_new0) > thresh_hold:
-                        p_new_new1 = extend(p_new1, p_new0, step)  # p_new1朝p_new0生长
+                        p_new_new1 = extend(p_new1, p_new0)  # p_new1朝p_new0生长
                         if not is_valid(p_new_new1):
                             count += 1
                             break
@@ -186,8 +177,11 @@ def rrt_connect(step,thresh_hold,start,goal):
                         flag = True
                         break
 
-            if len(tree1) < len(tree0):
-                tree0, tree1 = tree1, tree0
+            if(len(tree1)<len(tree0)):
+                temp=tree0
+                tree0=tree1
+                tree1=temp
+
 
     if(flag):
         print("Path Found")
@@ -215,10 +209,17 @@ def rrt_connect(step,thresh_hold,start,goal):
         print("Path not Found")
 
 
-
     
     
 if __name__ == '__main__':
+
+    R = 30
+    C = 30
+
+    delimiter = [-1]
+
+    deg = list(range(0, 360, 2))
+    deg.append(0)
     
     start = [1, 1]
     goal = [20, 20]
@@ -250,7 +251,7 @@ if __name__ == '__main__':
     if not is_valid(start) or not is_valid(goal):
         print('init or goal is not feasible')
     else:
-        path0, path1, tree0, tree1 = rrt_connect(step, thresh_hold, start, goal)
+        path0,path1,tree0,tree1=rrt_connect()
 
         x0 = [i[0] for i in path0]
         y0 = [i[1] for i in path0]
@@ -278,7 +279,7 @@ if __name__ == '__main__':
             path = path1[::-1][:-1] + path0
 
 
-        new_path = pruning(path, step)
+        new_path = pruning(path)
         n_x = [i[0] for i in new_path]
         n_y = [i[1] for i in new_path]
         plt.plot(n_x, n_y, color="green")
