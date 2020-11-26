@@ -2,13 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import random
 import math
-import copy
-
 
 def circle(x,y,r,xl=[],yl=[]):
     xl.append([x + r * math.cos(np.deg2rad(d)) for d in deg])
     yl.append([y + r * math.sin(np.deg2rad(d)) for d in deg])
-
 
 def inside_circle(a,b,r,x,y):
     if( (a-x)*(a-x)+(b-y)*(b-y) <= r*r  ):
@@ -66,34 +63,36 @@ def extend(p,q):
         
     return(new_point)
 
+def find_path(tree0,tree1):
+    print("Path Found")
+    path0=[]
+    ni=tree0[-1][2]
+    path0.append([tree0[-1][0],tree0[-1][1]])
+    while(ni!=delimiter[0]):
+        path0.append([tree0[ni][0],tree0[ni][1]])
+        ni=tree0[ni][2]
+    path0.append([tree0[0][0],tree0[0][1]])
 
-
-
-
-
-
-
-
-
-
-
-
-
-def pruning(path):
-    new_path = [path[0]]
-    i = 0
-    j = 1
-    while i < len(path) - 2:
-        if checkpath(path[i], path[j]):
-            if euclidean_distance(path[j], path[-1]) < thresh_hold:
-                new_path.append(path[-1])
-                break
-            j += 1
-        else:
-            new_path.append(path[j-1])
-            i = j-1
+    path1=[]
+    ni=tree1[-1][2]
+    path1.append([tree1[-1][0],tree0[-1][1]])
+    while(ni!=delimiter[0]):
+        path1.append([tree1[ni][0],tree1[ni][1]])
+        ni=tree1[ni][2]
+    path1.append([tree1[0][0],tree1[0][1]])
     
-    return(new_path)
+    return(path0,path1)
+
+
+
+
+
+
+
+
+
+
+
 
 '''
 Function: Check whether the path between points p and q collides
@@ -105,12 +104,35 @@ def checkpath(p,q):
         return(True)
     
     theta=find_angle(p,q)
-    t=copy.deepcopy(p)
-    while euclidean_distance(t, q) > thresh_hold:
-        t = parametric_coordinates(t,theta)
-        if not is_valid(t):
-            return False
-    return True
+    while(euclidean_distance(p,q) > thresh_hold):
+        p=parametric_coordinates(p,theta)
+        if(is_valid(p)==False):
+            return(False)
+        
+    return(True)
+
+def pruning(path):
+    new_path=[path[0]]
+    i=0
+    j=1
+    
+    while(i+2<len(path)):
+        if(checkpath(path[i],path[j])):
+            if(euclidean_distance(path[j], path[-1]) < thresh_hold):
+                new_path.append(path[-1])
+                break
+            j+=1
+        else:
+            new_path.append(path[j-1])
+            i=j-1
+
+    n_x=[]
+    n_y=[]
+    for pt in new_path:
+        n_x.append(pt[0])
+        n_y.append(pt[1])
+        
+    return(n_x,n_y)
 
 def rrt_connect():
     
@@ -174,42 +196,19 @@ def rrt_connect():
 
                     if euclidean_distance(p_new1, p_new0) <= thresh_hold:
                         tree1.append([p_new0[0], p_new0[1], len(tree1)-1])
-                        flag = True
+                        flag=True
                         break
 
             if(len(tree1)<len(tree0)):
                 temp=tree0
                 tree0=tree1
                 tree1=temp
-
-
-    if(flag):
-        print("Path Found")
-
-        path0 = []
-        i = -1
-        ni = tree0[-1][2]
-        while ni != delimiter[0]:
-            path0.append([tree0[i][0], tree0[i][1]])
-            i = ni
-            ni = tree0[i][2]
-        path0.append([tree0[0][0], tree0[0][1]])
-
-        path1 = []
-        i = -1
-        ni = tree1[-1][2]
-        while ni != delimiter[0]:
-            path1.append([tree1[i][0], tree1[i][1]])
-            i = ni
-            ni = tree1[i][2]
-        path1.append([tree1[0][0], tree1[0][1]])
-
-        return path0, path1, tree0, tree1
-    else:
+                
+    if(flag==False):
         print("Path not Found")
+    else:
+        return(tree0,tree1)
 
-
-    
     
 if __name__ == '__main__':
 
@@ -246,43 +245,41 @@ if __name__ == '__main__':
     circle(15,15,3,xl,yl)
     ax.fill(xl[0],yl[0],"-k",zorder=5)
     plt.axis([0,30,0,30])
-    
 
-    if not is_valid(start) or not is_valid(goal):
-        print('init or goal is not feasible')
+    if(is_valid(start)==False or is_valid(goal)==False):
+        print("Path not found")
     else:
-        path0,path1,tree0,tree1=rrt_connect()
+        tree0,tree1=rrt_connect()
 
-        x0 = [i[0] for i in path0]
-        y0 = [i[1] for i in path0]
-        plt.plot(x0, y0, color="darkred")
+        for pt in tree0:
+            plt.scatter(pt[0],pt[1],color='lightcoral',s=5)
+            
+        for pt in tree1:
+            plt.scatter(pt[0],pt[1],color='lightsteelblue',s=5)
+            
+        path0,path1=find_path(tree0,tree1)
 
-        x1 = [i[0] for i in path1]
-        y1 = [i[1] for i in path1]
-        plt.plot(x1, y1, color="darkblue")
-
-        t0x, t0y = [], []
-        for i in tree0:
-            t0x.append(i[0])
-            t0y.append(i[1])
-        plt.scatter(t0x, t0y, color='lightcoral', s=5)
-        
-        t1x, t1y = [], []
-        for i in tree1:
-            t1x.append(i[0])
-            t1y.append(i[1])
-        plt.scatter(t1x, t1y, color='lightsteelblue', s=5)
-
-        if path0[-1] == start:
-            path = path0[::-1][:-1] + path1
+        if(path0[-1]==start):
+            path=path0[::-1][:-1]+path1
         else:
-            path = path1[::-1][:-1] + path0
+            path=path1[::-1][:-1]+path0
 
+        n_x,n_y=pruning(path)
+        plt.plot(n_x,n_y,color="green")
 
-        new_path = pruning(path)
-        n_x = [i[0] for i in new_path]
-        n_y = [i[1] for i in new_path]
-        plt.plot(n_x, n_y, color="green")
+        x0=[]
+        y0=[]
+        for pt in path0:
+            x0.append(pt[0])
+            y0.append(pt[1])
+        plt.plot(x0,y0,color="darkred")
+
+        x1=[]
+        y1=[]
+        for pt in path1:
+            x1.append(pt[0])
+            y1.append(pt[1])
+        plt.plot(x1,y1,color="darkblue")
 
         plt.grid(True)
         plt.show()
