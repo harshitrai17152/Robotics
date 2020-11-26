@@ -53,17 +53,27 @@ def nearest(p_rand,tree):
             
     return(p_near,branch)
 
+def find_angle(p,q):
+    hyp=q[1]-p[1]
+    base=q[0]-p[0]
+    theta=math.atan2(hyp,base)
+    
+    return(theta)
+
+def parametric_coordinates(p,theta):
+    x = p[0]+(step*math.cos(theta))
+    y = p[1]+(step*math.sin(theta))
+
+    return([x,y])
+
 def extend(p,q,step):
-    if(euclidean_distance(p,q)<thresh_hold):
-        return(q)
+    if(euclidean_distance(p,q)>=thresh_hold):
+        theta=find_angle(p,q)
+        new_point=parametric_coordinates(p,theta)
     else:
-        theta = math.atan2((q[1] - p[1]), (q[0] - p[0]))
-        p_new = [p[0] + step * math.cos(theta), p[1] + step * math.sin(theta)]
-        return(p_new)
-
-
-
-
+        new_point=q
+        
+    return(new_point)
 
 
 
@@ -77,15 +87,16 @@ def extend(p,q,step):
 
 
 '''
-函数：检查点p、q之间路径是否碰撞
-输入：点p、q
-返回：可行（True），不可行（False）
+Function: Check whether the path between points p and q collides
+Input: point p, q
+Return: feasible (True), not feasible (False)
 '''
-def checkpath(p, q, step):
-    if euclidean_distance(p, q) < thresh_hold:
-        return True
-    theta = math.atan2((q[1] - p[1]), (q[0] - p[0]))  # p朝q生长
-    t = copy.deepcopy(p)
+def checkpath(p,q,step):
+    if(euclidean_distance(p,q) < thresh_hold):
+        return(True)
+    
+    theta=find_angle(p,q)
+    t=copy.deepcopy(p)
     while euclidean_distance(t, q) > thresh_hold:
         t = [t[0] + step * math.cos(theta), t[1] + step * math.sin(theta)]
         if not is_valid(t):
@@ -94,9 +105,9 @@ def checkpath(p, q, step):
 
 
 '''
-函数：剪枝优化
-输入：点path
-返回：剪枝后的new_path
+Function: pruning optimization
+Input: point path
+Return: new_path after pruning
 '''
 def pruning(path, step):
     new_path = [path[0]]
@@ -239,7 +250,6 @@ if __name__ == '__main__':
     if not is_valid(start) or not is_valid(goal):
         print('init or goal is not feasible')
     else:
-
         path0, path1, tree0, tree1 = rrt_connect(step, thresh_hold, start, goal)
 
         x0 = [i[0] for i in path0]
