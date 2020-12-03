@@ -14,16 +14,31 @@ def inside_circle(a,b,r,x,y):
         return(True)
     else:
         return(False)
+
+# Function which determines the coordinates of the highlighted path
+def clear_path(path):
+    new_path=[path[0]]
+    i=0
+    j=1
     
-# Function which checks whether a point is valid/feasible on the map or not
-def is_valid(p):
-    x=p[0]
-    y=p[1]
-    
-    if( x<0 or x>=R or y<0 or y>=C or inside_circle(4.5,3,2,x,y) or inside_circle(3,12,2,x,y) or inside_circle(15,15,3,x,y) ):
-        return(False)
-    else:
-        return(True)
+    while(i+2<len(path)):
+        if(checkpath(path[i],path[j])==False):
+            i=j-1
+            new_path.append(path[j-1])
+        elif(checkpath(path[i],path[j])==True):
+            if( euclidean_distance(path[j-1],path[-1]) >= thresh_hold ):
+                j+=1
+            elif(euclidean_distance(path[j],path[-1]) < thresh_hold):
+                new_path.append(path[-1])
+                break
+            
+    n_x=[]
+    n_y=[]
+    for pt in new_path:
+        n_x.append(pt[0])
+        n_y.append(pt[1])
+        
+    return(n_x,n_y)
 
 # Function which calculates the euclidean distance betwene two points    
 def euclidean_distance(p,q):
@@ -36,6 +51,23 @@ def find_angle(p,q):
     theta=math.atan2(hyp,base)
     
     return(theta)
+
+# Function which joins the P_near point of the tree with the random point, satisfying the threshold condition
+def expand(p,q):
+    if(euclidean_distance(p,q)>=thresh_hold):                   # If the distance between points P_near and P_new is greater than "Delta", then P_new would be
+        theta=find_angle(p,q)                                   # a point which is at a distance of "Step Size" from point P_near along the direction of point P_new
+        p_new=parametric_coordinates(p,theta)
+    else:
+        p_new=q
+        
+    return(p_new)
+
+# Function which finds a point which is at a distance of "Step Size" from point P along the direction of point Q
+def parametric_coordinates(p,theta):
+    x=p[0]+(step*math.cos(theta))
+    y=p[1]+(step*math.sin(theta))
+
+    return([x,y])
 
 # Function which find the nearest point of the tree with the random point
 # Here, "level" depicts the nearest node from the corresponding node
@@ -54,23 +86,6 @@ def nearest(p_rand,tree):
             level=i
             
     return(p_near,level)
-
-# Function which joins the P_near point of the tree with the random point, satisfying the threshold condition
-def expand(p,q):
-    if(euclidean_distance(p,q)>=thresh_hold):                   # If the distance between points P_near and P_new is greater than "Delta", then P_new would be
-        theta=find_angle(p,q)                                   # a point which is at a distance of "Step Size" from point P_near along the direction of point P_new
-        p_new=parametric_coordinates(p,theta)
-    else:
-        p_new=q
-        
-    return(p_new)
-
-# Function which finds a point which is at a distance of "Step Size" from point P along the direction of point Q
-def parametric_coordinates(p,theta):
-    x=p[0]+(step*math.cos(theta))
-    y=p[1]+(step*math.sin(theta))
-
-    return([x,y])
 
 # Function which adds all the nodes of the tree in a list [nodes's x_coordinate,nodes's y_coordinate]
 def find_path(tree1,tree2):
@@ -108,30 +123,15 @@ def checkpath(p,q):
         
     return(is_valid(p))
 
-# Function which determines the coordinates of the highlighted path
-def clear_path(path):
-    new_path=[path[0]]
-    i=0
-    j=1
+# Function which checks whether a point is valid/feasible on the map or not
+def is_valid(p):
+    x=p[0]
+    y=p[1]
     
-    while(i+2<len(path)):
-        if(checkpath(path[i],path[j])==False):
-            i=j-1
-            new_path.append(path[j-1])
-        elif(checkpath(path[i],path[j])==True):
-            if( euclidean_distance(path[j-1],path[-1]) >= thresh_hold ):
-                j+=1
-            elif(euclidean_distance(path[j],path[-1]) < thresh_hold):
-                new_path.append(path[-1])
-                break
-            
-    n_x=[]
-    n_y=[]
-    for pt in new_path:
-        n_x.append(pt[0])
-        n_y.append(pt[1])
-        
-    return(n_x,n_y)
+    if( x<0 or x>=R or y<0 or y>=C or inside_circle(4.5,3,2,x,y) or inside_circle(3,12,2,x,y) or inside_circle(15,15,3,x,y) ):
+        return(False)
+    else:
+        return(True)
 
 # The function which performs the planning process of the bi-directional RRT
 def bi_rrt():
@@ -262,4 +262,3 @@ if __name__ == '__main__':
 
         plt.grid(True)
         plt.show()                                              # Plotting the complete solution
-        
