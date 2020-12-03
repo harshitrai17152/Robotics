@@ -3,12 +3,10 @@ import numpy as np
 import random
 import math
 
-
 # Function for making circles/obstacles
 def circle(x,y,r,xl=[],yl=[]):
     xl.append([x + r * math.cos(np.deg2rad(d)) for d in deg])
     yl.append([y + r * math.sin(np.deg2rad(d)) for d in deg])
-
     
 # Function which checks whether or not the given point lies inside or outside of the circle
 def inside_circle(a,b,r,x,y):
@@ -16,7 +14,6 @@ def inside_circle(a,b,r,x,y):
         return(True)
     else:
         return(False)
-
     
 # Function which checks whether a point is valid/feasible on the map or not
 def is_valid(p):
@@ -28,11 +25,9 @@ def is_valid(p):
     else:
         return(True)
 
-
 # Function which calculates the euclidean distance betwene two points    
 def euclidean_distance(p,q):
     return( (p[0]-q[0])*(p[0]-q[0])+(p[1]-q[1])*(p[1]-q[1]) )
-
 
 # Function which finds the angle between two points (when both the points are hypothetically joined to the origin)
 def find_angle(p,q):
@@ -41,7 +36,6 @@ def find_angle(p,q):
     theta=math.atan2(hyp,base)
     
     return(theta)
-
 
 # Function which find the nearest point of the tree with the random point
 # Here, "level" depicts the nearest node from the corresponding node
@@ -61,7 +55,6 @@ def nearest(p_rand,tree):
             
     return(p_near,level)
 
-
 # Function which joins the P_near point of the tree with the random point, satisfying the threshold condition
 def expand(p,q):
     if(euclidean_distance(p,q)>=thresh_hold):                   # If the distance between points P_near and P_new is greater than "Delta", then P_new would be
@@ -72,14 +65,12 @@ def expand(p,q):
         
     return(p_new)
 
-
 # Function which finds a point which is at a distance of "Step Size" from point P along the direction of point Q
 def parametric_coordinates(p,theta):
     x=p[0]+(step*math.cos(theta))
     y=p[1]+(step*math.sin(theta))
 
     return([x,y])
-
 
 # Function which adds all the nodes of the tree in a list [nodes's x_coordinate,nodes's y_coordinate]
 def find_path(tree1,tree2):
@@ -106,7 +97,6 @@ def find_path(tree1,tree2):
     
     return(path1,path2)
 
-
 # Function which checks whether the path from point p to point q is fesiable or without any obstacle, also satisfying the threshold condition
 def checkpath(p,q):
     if(euclidean_distance(p,q)<thresh_hold):                    # Returns true if the path is valid and also satisfies the threshold condition
@@ -117,7 +107,6 @@ def checkpath(p,q):
         p=parametric_coordinates(p,theta)
         
     return(is_valid(p))
-
 
 # Function which determines the coordinates of the highlighted path
 def clear_path(path):
@@ -143,7 +132,6 @@ def clear_path(path):
         n_y.append(pt[1])
         
     return(n_x,n_y)
-
 
 # The function which performs the planning process of the bi-directional RRT
 def bi_rrt():
@@ -172,7 +160,7 @@ def bi_rrt():
                 tree2=temp
             continue
         else:
-            tree1.append([p_new0[0],p_new0[1],level0])          # Adding the new node in the smaller tree
+            tree1.append([p_new0[0],p_new0[1],level0])          # Adding the new node in the start tree as root (or goal tree as root) 
             
             p_near1,level1=nearest(p_new0,tree2)                # Now the previous new_node becomes the random node for the bigger tree, and the same process of finding the P_new node is applied here as well
             p_new1=expand(p_near1,p_new0)                       # Connecting the new P_near and the new random point, which will generate the new P_new point
@@ -185,52 +173,19 @@ def bi_rrt():
                     tree2=temp
                 continue
             else:
-                tree2.append([p_new1[0],p_new1[1],level1])      # Adding the new node in the smaller tree
+                tree2.append([p_new1[0],p_new1[1],level1])      # Adding the new node in the goal tree as root (or start tree as root)
 
-                # At this point we have successfully added two nodes in the tree
-                p_new2=expand(p_new1,p_new0)                    # Finding a 3rd point, which will help in connecting two trees
-
-                if(is_valid(p_new2)==False):                    # If the P_new point is not fesiable or lying on the obstace, then increment the node count by 1
-                    count+=1
-                    if(len(tree2)<len(tree1)):                  # Checking for the smaller tree in order to add next new node in the smaller tree
-                        temp=tree1
-                        tree1=tree2
-                        tree2=temp
-                    continue
-                else:
-                    tree2.append([p_new2[0],p_new2[1],len(tree2)-1])        # Adding the new node in the smaller tree
-                    p_new1=p_new2
-
-                    # Connecting the two trees
-                    while(euclidean_distance(p_new1,p_new0)>thresh_hold):
-                        p_new2=expand(p_new1,p_new0)
-
-                        if(is_valid(p_new2)):
-                            tree2.append([p_new2[0],p_new2[1],len(tree2)-1])
-                            p_new1=p_new2
-                        else:
-                            count+=1
-                            break
-
-                    if(euclidean_distance(p_new1,p_new0)<thresh_hold):      # Adding the node in the tree and setting the flag as True
-                        tree2.append([p_new0[0],p_new0[1],len(tree2)-1])
-                        flag=True
-                        break
-                    elif(euclidean_distance(p_new1,p_new0)==thresh_hold):   # Adding the node in the tree and setting the flag as True
-                        tree2.append([p_new0[0],p_new0[1],len(tree2)-1])
-                        flag=True
-                        break
-
-            if(len(tree2)<len(tree1)):                          # Checking for the smaller tree in order to add next new node in the smaller tree
-                temp=tree1
-                tree1=tree2
-                tree2=temp
+                # So far we have addend nodes in both the trees, now we will try to connect these two trees
+                if(thresh_hold>=euclidean_distance(p_new1,p_new0)):
+                    tree2.append([p_new0[0],p_new0[1],len(tree2)-1])    # As soon as the distance between two trees becomes <= Delta, we connect both the trees
+                    flag=True                                           # by joining the points with a line. Also, as both the trees are not connected,
+                    break                                               # we break the loop. Stoping expanding any further
                 
     if(flag==False):                                            # If path is not found, print "No Path Found" else, returning both the trees
         print("Path not Found")
     else:
         return(tree1,tree2)
-
+    
     
 if __name__ == '__main__':
 
@@ -307,3 +262,4 @@ if __name__ == '__main__':
 
         plt.grid(True)
         plt.show()                                              # Plotting the complete solution
+        
